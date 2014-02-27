@@ -58,6 +58,7 @@ HANDLERS = [
     ('uwsgi',        N_('uWSGI')),
     ('proxy',        N_('HTTP Reverse Proxy')),
     ('post_report',  N_('Upload Reporting')),
+    ('rrrr',         N_('Rapid Round-based Routing')),
     ('streaming',    N_('Audio/Video Streaming')),
     ('cgi',          N_('CGI')),
     ('ssi',          N_('Server Side Includes')),

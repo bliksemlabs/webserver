@@ -767,6 +767,23 @@ dynamic_handler_proxy_lib = libplugin_proxy.la
 endif
 
 
+#
+## Handler rrrr
+#
+#handler_rrrr = \
+handler_rrrr.c \
+handler_rrrr.h
+
+libplugin_rrrr_la_LDFLAGS = $(module_ldflags) -lrrrr
+libplugin_rrrr_la_SOURCES = $(handler_rrrr)
+
+if STATIC_HANDLER_PROXY
+static_handler_rrrr_src = $(handler_rrrr)
+static_handler_rrrr_lib = libcherokee-client.la
+else
+dynamic_handler_rrrr_lib = libplugin_rrrr.la
+endif
+
 
 #
 # Handler ssi
@@ -1275,6 +1292,7 @@ $(static_rule_geoip_lib) \
 $(static_validator_htpasswd_lib) \
 $(static_validator_mysql_lib) \
 $(static_handler_proxy_lib) \
+$(static_handler_rrrr_lib) \
 $(static_handler_dbslayer_lib) \
 $(static_handler_streaming_lib) \
 $(static_cryptor_libssl_lib) \
@@ -1498,6 +1516,7 @@ $(static_handler_cgi_src) \
 $(static_handler_fcgi_src) \
 $(static_handler_scgi_src) \
 $(static_handler_proxy_src) \
+$(static_handler_rrrr_src) \
 $(static_handler_uwsgi_src) \
 $(static_handler_redir_src) \
 $(static_handler_error_redir_src) \
@@ -1689,6 +1708,7 @@ $(dynamic_handler_cgi_lib) \
 $(dynamic_handler_fcgi_lib) \
 $(dynamic_handler_scgi_lib) \
 $(dynamic_handler_proxy_lib) \
+$(dynamic_handler_rrrr_lib) \
 $(dynamic_handler_uwsgi_lib) \
 $(dynamic_handler_redir_lib) \
 $(dynamic_handler_ssi_lib) \
