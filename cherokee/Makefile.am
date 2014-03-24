@@ -883,6 +883,28 @@ endif
 
 
 #
+# Handler Geocoder
+#
+handler_geocoder = \
+handler_geocoder.h \
+handler_geocoder.c
+
+libplugin_geocoder_la_LDFLAGS = $(module_ldflags) $(MYSQL_LDFLAGS)
+libplugin_geocoder_la_SOURCES = $(handler_geocoder)
+libplugin_geocoder_la_CFLAGS  = $(MYSQL_CFLAGS)
+
+if HAVE_MYSQL
+if STATIC_HANDLER_GEOCODER
+static_handler_geocoder_src   = $(handler_geocoder)
+static_handler_geocoder_lib   = $(MYSQL_LDFLAGS)
+static_handler_geocoder_flags = $(MYSQL_CFLAGS)
+else
+dynamic_handler_geocoder_lib = libplugin_geocoder.la
+endif
+endif
+
+
+#
 # Handler custom_error
 #
 handler_custom_error = \
@@ -1264,6 +1286,7 @@ $(static_validator_htpasswd_flags) \
 $(static_validator_mysql_flags) \
 $(static_cryptor_libssl_flags) \
 $(static_handler_dbslayer_flags) \
+$(static_handler_geocoder_flags) \
 $(static_handler_streaming_flags)
 
 libcherokee_server_la_LIBADD = \
@@ -1276,6 +1299,7 @@ $(static_validator_htpasswd_lib) \
 $(static_validator_mysql_lib) \
 $(static_handler_proxy_lib) \
 $(static_handler_dbslayer_lib) \
+$(static_handler_geocoder_lib) \
 $(static_handler_streaming_lib) \
 $(static_cryptor_libssl_lib) \
 libcherokee-base.la
@@ -1512,6 +1536,7 @@ $(static_handler_custom_error_src) \
 $(static_handler_server_info_src) \
 $(static_handler_render_rrd_src) \
 $(static_handler_dbslayer_src) \
+$(static_handler_geocoder_src) \
 $(static_handler_admin_src) \
 \
 $(static_logger_ncsa_src) \
@@ -1701,6 +1726,7 @@ $(dynamic_handler_error_redir_lib) \
 $(dynamic_handler_error_nn_lib) \
 $(dynamic_handler_common_lib) \
 $(dynamic_handler_dbslayer_lib) \
+$(dynamic_handler_geocoder_lib) \
 $(dynamic_handler_admin_lib) \
 $(dynamic_encoder_gzip_lib) \
 $(dynamic_encoder_deflate_lib) \
@@ -1763,6 +1789,7 @@ $(getopt_src) \
 $(bin_SCRIPTS) \
 $(validator_mysql) \
 $(handler_dbslayer) \
+$(handler_geocoder) \
 $(cherokeedeps_DATA) \
 $(cryptor_libssl_dist)
 
