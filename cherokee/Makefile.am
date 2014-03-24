@@ -768,9 +768,9 @@ endif
 
 
 #
-## Handler rrrr
+# Handler rrrr
 #
-#handler_rrrr = \
+handler_rrrr = \
 handler_rrrr.c \
 handler_rrrr.h
 

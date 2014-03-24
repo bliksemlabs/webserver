@@ -39,6 +39,7 @@ typedef struct {
 	tdata_t                   tdata;
 	HashGrid                  hashgrid;
 	coord_t                  *coords;
+	CHEROKEE_RWLOCK_T        (rwlock);
 } cherokee_handler_rrrr_props_t;
 
 typedef struct {

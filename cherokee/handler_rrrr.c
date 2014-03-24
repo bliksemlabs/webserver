@@ -32,7 +32,7 @@
 #define ENTRIES "rrrr"
 #define OUTPUT_LEN 524288
 
-PLUGIN_INFO_HANDLER_EASIEST_INIT (rrrr, http_get);
+PLUGIN_INFO_HANDLER_EASIEST_INIT (rrrr, http_get | http_post);
 
 static ret_t
 latlon_to_idx(cherokee_handler_rrrr_t *hdl, cherokee_buffer_t *value, uint32_t *idx) {
@@ -311,6 +311,8 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 
 	router_request_t req = hdl->req;
 
+	CHEROKEE_RWLOCK_READER (&props->rwlock);
+
 	router_setup (&hdl->router, &props->tdata);
 
 	router_route (&hdl->router, &req);
@@ -332,6 +334,57 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 	router_result_to_plan (&plan, &hdl->router, &req);
 	plan.req.time = hdl->req.time; // restore the original request time
 	hdl->output.len = render_plan_json(&plan, &props->tdata, hdl->output.buf, OUTPUT_LEN);
+
+	CHEROKEE_RWLOCK_UNLOCK(&props->rwlock);
+
+	return ret_ok;
+}
+
+
+static ret_t
+rrrr_read_post (cherokee_handler_rrrr_t *hdl)
+{
+	ret_t                  ret;
+	cherokee_connection_t *conn    = HANDLER_CONN(hdl);
+	cherokee_buffer_t     *post    = &HANDLER_THREAD(hdl)->tmp_buf1;
+    cherokee_handler_rrrr_props_t *props = HANDLER_RRRR_PROPS(hdl);
+
+	/* Check for the post info
+	 */
+	if (! conn->post.has_info) {
+		conn->error_code = http_bad_request;
+		return ret_error;
+	}
+
+	cherokee_buffer_clean (post);
+	ret = cherokee_post_read (&conn->post, &conn->socket, post);
+	switch (ret) {
+	case ret_ok:
+		cherokee_connection_update_timeout (conn);
+		break;
+	case ret_eagain:
+		ret = cherokee_thread_deactive_to_polling (HANDLER_THREAD(hdl),
+		                                           HANDLER_CONN(hdl),
+		                                           conn->socket.socket,
+		                                           FDPOLL_MODE_READ, false);
+		if (ret != ret_ok) {
+			return ret_error;
+		} else {
+			return ret_eagain;
+		}
+	default:
+		conn->error_code = http_bad_request;
+		return ret_error;
+	}
+
+	cherokee_buffer_add_buffer(&hdl->output, post);
+	if (! cherokee_post_read_finished (&conn->post)) {
+		return ret_eagain;
+	} else {
+		CHEROKEE_RWLOCK_WRITER(&props->rwlock);
+		tdata_apply_gtfsrt (&props->tdata, hdl->output.buf, hdl->output.len);
+		CHEROKEE_RWLOCK_UNLOCK(&props->rwlock);
+	}
 
 	return ret_ok;
 }
@@ -384,6 +437,7 @@ cherokee_handler_rrrr_new (cherokee_handler_t  **hdl,
 	MODULE(n)->init         = (handler_func_init_t) cherokee_handler_rrrr_init;
 	MODULE(n)->free         = (module_func_free_t) rrrr_free;
 	HANDLER(n)->step        = (handler_func_step_t) rrrr_step;
+	HANDLER(n)->read_post   = (handler_func_read_post_t) rrrr_read_post;
 	HANDLER(n)->add_headers = (handler_func_add_headers_t) rrrr_add_headers;
 
 	/* Supported features
@@ -409,6 +463,7 @@ props_free  (cherokee_handler_rrrr_props_t *props)
 	cherokee_buffer_mrproper (&props->tdata_file);
 	HashGrid_teardown(&props->hashgrid);
 	free(props->coords);
+	CHEROKEE_RWLOCK_DESTROY (&props->rwlock);
 
 	return ret_ok;
 }
@@ -454,6 +509,13 @@ cherokee_handler_rrrr_configure (cherokee_config_node_t   *conf,
 		coord_from_latlon(props->coords + c, props->tdata.stop_coords + c);
 	}
 	HashGrid_init (&props->hashgrid, 100, 500.0, props->coords, props->tdata.n_stops);
+
+	props->tdata.stopid_index  = rxt_load_strings_from_tdata (props->tdata.stop_ids, props->tdata.stop_ids_width, props->tdata.n_stops);
+	props->tdata.tripid_index  = rxt_load_strings_from_tdata (props->tdata.trip_ids, props->tdata.trip_ids_width, props->tdata.n_trips);
+	props->tdata.routeid_index = rxt_load_strings_from_tdata (props->tdata.route_ids, props->tdata.route_ids_width, props->tdata.n_routes);
+
+
+	CHEROKEE_RWLOCK_INIT (&props->rwlock, NULL);
 
 	return ret_ok;
 }
