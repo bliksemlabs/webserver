@@ -1413,7 +1413,7 @@ AC_ARG_ENABLE(static-module,
 	   AC_HELP_STRING([--enable-static-module=MODULE][]),
 	   [use_static_module="$use_static_module $enableval "],[])
 
-modules="error_redir error_nn server_info file dirlist cgi fcgi scgi uwsgi proxy rrrr redir common ssi secdownload empty_gif drop admin custom_error dbslayer streaming gzip deflate ncsa combined custom pam ldap mysql htpasswd plain htdigest authlist round_robin ip_hash failover directory extensions request header exists fullpath method from bind tls geoip url_arg v_or wildcard rehost target_ip evhost post_track post_report libssl render_rrd rrd not and or"
+modules="error_redir error_nn server_info file dirlist cgi fcgi scgi uwsgi proxy rrrr geocoder redir common ssi secdownload empty_gif drop admin custom_error dbslayer streaming gzip deflate ncsa combined custom pam ldap mysql htpasswd plain htdigest authlist round_robin ip_hash failover directory extensions request header exists fullpath method from bind tls geoip url_arg v_or wildcard rehost target_ip evhost post_track post_report libssl render_rrd rrd not and or"
 
 # Remove modules that will not be compiles
 #
@@ -1426,6 +1426,7 @@ fi
 if test "x$have_mysql" != "xyes"; then
 	modules=`echo $modules | sed s/mysql//`
 	modules=`echo $modules | sed s/dbslayer//`
+	modules=`echo $modules | sed s/geocoder//`
 fi
 if test "x$have_geoip" != "xyes"; then
 	modules=`echo $modules | sed s/geoip//`
@@ -1492,6 +1493,7 @@ AM_CONDITIONAL(STATIC_HANDLER_EMPTY_GIF,      grep empty_gif      $conf_h >/dev/
 AM_CONDITIONAL(STATIC_HANDLER_DROP,           grep drop           $conf_h >/dev/null)
 AM_CONDITIONAL(STATIC_HANDLER_CUSTOM_ERROR,   grep custom_error   $conf_h >/dev/null)
 AM_CONDITIONAL(STATIC_HANDLER_DBSLAYER,       grep dbslayer       $conf_h >/dev/null)
+AM_CONDITIONAL(STATIC_HANDLER_GEOCODER,       grep geocoder       $conf_h >/dev/null)
 AM_CONDITIONAL(STATIC_HANDLER_STREAMING,      grep streaming      $conf_h >/dev/null)
 AM_CONDITIONAL(STATIC_HANDLER_RENDER_RRD,     grep render_rrd     $conf_h >/dev/null)
 AM_CONDITIONAL(STATIC_ENCODER_GZIP,           grep gzip           $conf_h >/dev/null)

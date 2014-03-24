@@ -65,6 +65,7 @@ HANDLERS = [
     ('secdownload',  N_('Hidden Downloads')),
     ('server_info',  N_('Server Info')),
     ('dbslayer',     N_('MySQL Bridge')),
+    ('geocoder',     N_('Sphinx Geocoder')),
     ('custom_error', N_('HTTP Error')),
     ('admin',        N_('Remote Administration')),
     ('empty_gif',    N_('1x1 Transparent GIF')),
@@ -274,5 +275,5 @@ COMPRESSION_LEVELS = [
 ]
 
 HANDLERS_WITH_BALANCER = [
-    'fcgi', 'scgi', 'uwsgi', 'proxy', 'dbslayer'
+    'fcgi', 'scgi', 'uwsgi', 'proxy', 'dbslayer', 'geocoder'
 ]

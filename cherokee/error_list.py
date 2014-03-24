@@ -285,6 +285,13 @@ e('HANDLER_DBSLAYER_BALANCER',
   desc  = "The DBSlayer handler needs must specify a load balancing strategy and a list of target hosts to attend the load. At least one host is required. Please ensure it is correctly configured.")
 
 
+# cherokee/handler_geocoder.c
+#
+e('HANDLER_GEOCODER_BALANCER',
+  title = "Geocoder handler needs a balancer",
+  desc  = "The Geocoder handler needs must specify a load balancing strategy and a list of target hosts to attend the load. At least one host is required. Please ensure it is correctly configured.")
+
+
 # cherokee/handler_custom_error.c
 #
 e('HANDLER_CUSTOM_ERROR_HTTP',
