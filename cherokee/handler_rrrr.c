@@ -503,7 +503,7 @@ cherokee_handler_rrrr_configure (cherokee_config_node_t   *conf,
 		}
 	}
 
-	tdata_load(props->tdata_file.buf, &(props->tdata));
+	tdata_load_dynamic(props->tdata_file.buf, &(props->tdata));
 	props->coords = malloc(sizeof(coord_t) * props->tdata.n_stops);
 	for (uint32_t c = 0; c < props->tdata.n_stops; ++c) {
 		coord_from_latlon(props->coords + c, props->tdata.stop_coords + c);

@@ -24,6 +24,7 @@ file.py \
 from.py \
 fullpath.py \
 geoip.py \
+geocoder.py \
 header.py \
 htdigest.py \
 htpasswd.py \
