@@ -275,11 +275,16 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 	cherokee_connection_t         *conn  = HANDLER_CONN(hdl);
 	cherokee_handler_rrrr_props_t *props = HANDLER_RRRR_PROPS(hdl);
 
+	if (conn->post.has_info) {
+		return ret_ok;
+    }
+
 	/* Parse HTTP arguments
 	 */
 	ret = cherokee_connection_parse_args (conn);
 	if (ret != ret_ok || AVL_GENERIC(conn->arguments)->root == NULL) {
-		return ret_not_found;
+        conn->error_code = http_not_found;
+		return ret_error;
 	}
 
 	hdl->req.mode = 0;
@@ -288,11 +293,12 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 	/* Check all arguments
 	 */
 	ret = cherokee_avl_while (AVL_GENERIC(conn->arguments),
-				  (cherokee_avl_while_func_t) arguments_while,
-				  hdl, NULL, NULL);
+	                          (cherokee_avl_while_func_t) arguments_while,
+	                          hdl, NULL, NULL);
 
 	if (hdl->req.from == NONE || hdl->req.to == NONE) {
-		return ret_not_found;
+        conn->error_code = http_not_found;
+		return ret_error;
 	}
 
 	if (hdl->req.mode == 0)
@@ -347,7 +353,7 @@ rrrr_read_post (cherokee_handler_rrrr_t *hdl)
 	ret_t                  ret;
 	cherokee_connection_t *conn    = HANDLER_CONN(hdl);
 	cherokee_buffer_t     *post    = &HANDLER_THREAD(hdl)->tmp_buf1;
-    cherokee_handler_rrrr_props_t *props = HANDLER_RRRR_PROPS(hdl);
+	cherokee_handler_rrrr_props_t *props = HANDLER_RRRR_PROPS(hdl);
 
 	/* Check for the post info
 	 */

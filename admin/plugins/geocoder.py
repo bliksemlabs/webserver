@@ -32,7 +32,7 @@ from util import *
 from consts import *
 
 URL_APPLY = '/plugin/geocoder/apply'
-
+NOTE_INDICES = N_("Indices to be used when searching.")
 
 class Plugin_geocoder (Handler.PluginHandler):
     def __init__ (self, key, **kwargs):
@@ -40,10 +40,20 @@ class Plugin_geocoder (Handler.PluginHandler):
         Handler.PluginHandler.__init__ (self, key, **kwargs)
         Handler.PluginHandler.AddCommon (self)
 
+        table = CTK.PropsTable()
+        table.Add (_('Indices'),   CTK.TextCfg('%s!indices'%(key), False),  _(NOTE_INDICES))
+
+        submit = CTK.Submitter (URL_APPLY)
+        submit += table
+
+        self += CTK.RawHTML ("<h2>%s</h2>" %(_('Geocodec Configuration')))
+        self += CTK.Indenter (submit)
+
         # Load Balancing
         modul = CTK.PluginSelector('%s!balancer'%(key), trans_options(Cherokee.support.filter_available (BALANCERS)))
         table = CTK.PropsTable()
         table.Add (_("Balancer"), modul.selector_widget, _(Balancer.NOTE_BALANCER))
+
 
         self += CTK.RawHTML ('<h2>%s</h2>' %(_('Sphinx Balancing')))
         self += CTK.Indenter (table)
