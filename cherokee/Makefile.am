@@ -64,6 +64,53 @@ getopt/getopt.c  \
 getopt/getopt1.c \
 getopt/gettext.h
 
+rrrr_src = \
+rrrr/api.c \
+rrrr/api.h \
+rrrr/bitset.c \
+rrrr/bitset.h \
+rrrr/config.h \
+rrrr/geometry.c \
+rrrr/geometry.h \
+rrrr/gtfs-realtime.pb-c.c \
+rrrr/gtfs-realtime.pb-c.h \
+rrrr/hashgrid.c \
+rrrr/hashgrid.h \
+rrrr/json.c \
+rrrr/json.h \
+rrrr/plan_render_otp.c \
+rrrr/plan_render_otp.h \
+rrrr/plan_render_text.c \
+rrrr/plan_render_text.h \
+rrrr/polyline.c \
+rrrr/polyline.h \
+rrrr/radixtree.c \
+rrrr/radixtree.h \
+rrrr/router.c \
+rrrr/router_dump.c \
+rrrr/router_dump.h \
+rrrr/router.h \
+rrrr/router_request.c \
+rrrr/router_request.h \
+rrrr/router_result.c \
+rrrr/router_result.h \
+rrrr/rrrr_types.h \
+rrrr/set.c \
+rrrr/set.h \
+rrrr/string_pool.c \
+rrrr/string_pool.h \
+rrrr/tdata.c \
+rrrr/tdata.h \
+rrrr/tdata_io_v3_dynamic.c \
+rrrr/tdata_io_v3.h \
+rrrr/tdata_realtime_alerts.c \
+rrrr/tdata_realtime_alerts.h \
+rrrr/tdata_realtime_expanded.c \
+rrrr/tdata_realtime_expanded.h \
+rrrr/tdata_validation.c \
+rrrr/tdata_validation.h \
+rrrr/util.c \
+rrrr/util.h
 
 #
 # File generation rules
@@ -774,10 +821,10 @@ handler_rrrr = \
 handler_rrrr.c \
 handler_rrrr.h
 
-libplugin_rrrr_la_LDFLAGS = $(module_ldflags) -lrrrr2
-libplugin_rrrr_la_SOURCES = $(handler_rrrr)
+libplugin_rrrr_la_LDFLAGS = $(module_ldflags) -lm -lprotobuf-c
+libplugin_rrrr_la_SOURCES = $(handler_rrrr) $(rrrr_src)
 
-if STATIC_HANDLER_PROXY
+if STATIC_HANDLER_RRRR
 static_handler_rrrr_src = $(handler_rrrr)
 static_handler_rrrr_lib = libcherokee-client.la
 else
@@ -1806,6 +1853,7 @@ errors.h \
 errors_defs.h \
 $(pcre_src) \
 $(getopt_src) \
+$(rrrr_src) \
 $(bin_SCRIPTS) \
 $(validator_mysql) \
 $(handler_dbslayer) \

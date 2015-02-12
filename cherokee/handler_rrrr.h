@@ -26,19 +26,18 @@
 #ifndef CHEROKEE_HANDLER_RRRR_H
 #define CHEROKEE_HANDLER_RRRR_H
 
+#include "rrrr/config.h"
+#include "rrrr/router.h"
+#include "rrrr/hashgrid.h"
 #include "handler.h"
 #include "balancer.h"
 #include "plugin_loader.h"
-#include "rrrr/router.h"
-#include "rrrr/hashgrid.h"
-#include "rrrr/json.h"
 
 typedef struct {
 	cherokee_handler_props_t  base;
 	cherokee_buffer_t         tdata_file;
+	cherokee_buffer_t         metadata;
 	tdata_t                   tdata;
-	HashGrid                  hashgrid;
-	coord_t                  *coords;
 	CHEROKEE_RWLOCK_T        (rwlock);
 } cherokee_handler_rrrr_props_t;
 
@@ -47,6 +46,8 @@ typedef struct {
 	router_t                router;
 	router_request_t        req;
 	cherokee_buffer_t       output;
+    cherokee_boolean_t      has_from;
+    cherokee_boolean_t      has_to;
 } cherokee_handler_rrrr_t;
 
 #define HDL_RRRR(x)           ((cherokee_handler_rrrr_t *)(x))

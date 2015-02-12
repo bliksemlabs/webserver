@@ -42,6 +42,7 @@ rehost.py \
 request.py \
 round_robin.py \
 rrd.py \
+rrrr.py \
 scgi.py \
 secdownload.py \
 server_info.py \

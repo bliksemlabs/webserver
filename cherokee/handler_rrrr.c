@@ -6,7 +6,7 @@
  *      Alvaro Lopez Ortega <alvaro@alobbs.com>
  *      Stefan de Konink <stefan@konink.de>
  *
- * Copyright (C) 2001-2013 Alvaro Lopez Ortega
+ * Copyright (C) 2001-2015 Alvaro Lopez Ortega
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of version 2 of the GNU General Public
@@ -28,39 +28,17 @@
 #include "connection-protected.h"
 #include "thread.h"
 #include "util.h"
+#include "rrrr/config.h"
+#include "rrrr/router.h"
+#include "rrrr/api.h"
+#include "rrrr/set.h"
+#include "rrrr/plan_render_otp.h"
+#include "rrrr/tdata_realtime_expanded.h"
 
 #define ENTRIES "rrrr"
 #define OUTPUT_LEN 524288
 
 PLUGIN_INFO_HANDLER_EASIEST_INIT (rrrr, http_get | http_post);
-
-static ret_t
-latlon_to_idx(cherokee_handler_rrrr_t *hdl, cherokee_buffer_t *value, uint32_t *idx) {
-	cherokee_handler_rrrr_props_t *props = HANDLER_RRRR_PROPS(hdl);
-
-	const char *delim = ",";
-	char *latlon = strdup(value->buf);
-	if (latlon) {
-		char *token = strtok (latlon, delim);
-		if (token != NULL) {
-			double lat = strtod(token, NULL);
-			token = strtok(NULL, delim);
-			if (token != NULL) {
-				double lon = strtod(token, NULL);
-				HashGridResult result;
-				coord_t qc;
-				double radius_meters = 1000.0;
-				coord_from_lat_lon (&qc, lat, lon);
-				HashGrid_query (&props->hashgrid, &result, qc, radius_meters);
-				*idx = HashGridResult_closest (&result);
-				free(latlon);
-				return ret_ok;
-			}
-		}
-		free(latlon);
-	}
-	return ret_not_found;
-}
 
 static int
 arguments_while (cherokee_buffer_t *key, void *val, void *param)
@@ -87,7 +65,7 @@ arguments_while (cherokee_buffer_t *key, void *val, void *param)
 			}
 			break;
 		}
-
+#if 0
 		case 'b': {
 			if (cherokee_buffer_cmp_str (key, "banned-trips-idx") == 0) {
 				// TODO
@@ -98,6 +76,7 @@ arguments_while (cherokee_buffer_t *key, void *val, void *param)
 				}
 
 			} else if (cherokee_buffer_cmp_str (key, "banned-routes-idx") == 0) {
+                i
 				if (cherokee_atoi(value->buf, &hdl->req.banned_route) == ret_ok) {
 					hdl->req.n_banned_routes = 1;
 				}
@@ -109,7 +88,7 @@ arguments_while (cherokee_buffer_t *key, void *val, void *param)
 			}
 			break;
 		}
-
+#endif
 		case 'd': {
 			if (cherokee_buffer_cmp_str (key, "date") == 0) {
 				struct tm ltm;
@@ -127,10 +106,14 @@ arguments_while (cherokee_buffer_t *key, void *val, void *param)
 
 		case 'f': {
 			if (cherokee_buffer_cmp_str (key, "from-idx") == 0) {
-				cherokee_atoi(value->buf, &hdl->req.from);
-
+                int stop_idx;
+				cherokee_atoi(value->buf, &stop_idx);
+                if (stop_idx >= 0 && stop_idx < props->tdata.n_stop_points) {
+                    hdl->req.from_stop_point = (spidx_t) stop_idx;
+                    hdl->has_from = true;
+                }
 			} else if (cherokee_buffer_cmp_str (key, "from-latlng") == 0) {
-				latlon_to_idx(hdl, value, &hdl->req.from);
+				hdl->has_from = strtolatlon(value->buf, &hdl->req.from_latlon);
 			}
 			break;
 		}
@@ -223,33 +206,38 @@ arguments_while (cherokee_buffer_t *key, void *val, void *param)
 
 		case 't': {
 			if (cherokee_buffer_cmp_str (key, "to-idx") == 0) {
-				cherokee_atoi(value->buf, &hdl->req.to);
+                int stop_idx;
+				cherokee_atoi(value->buf, &stop_idx);
+                if (stop_idx >= 0 && stop_idx < props->tdata.n_stop_points) {
+                    hdl->req.to_stop_point = (spidx_t) stop_idx;
+                    hdl->has_to = true;
+                }
 
 			} else if (cherokee_buffer_cmp_str (key, "to-latlng") == 0) {
-				latlon_to_idx(hdl, value, &hdl->req.to);
+				hdl->has_to = strtolatlon(value->buf, &hdl->req.to_latlon);
 
 			} else if (cherokee_buffer_cmp_str (key, "trip-attributes") == 0) {
 				if (cherokee_buffer_cmp_str (value, "accessible") == 0) {
-					hdl->req.trip_attributes |= ta_accessible;
+					hdl->req.vj_attributes |= vja_accessible;
 				} else if (cherokee_buffer_cmp_str (value, "toilet") == 0) {
-					hdl->req.trip_attributes |= ta_toilet;
+					hdl->req.vj_attributes |= vja_toilet;
 				} else if (cherokee_buffer_cmp_str (value, "wifi") == 0) {
-					hdl->req.trip_attributes |= ta_wifi;
+					hdl->req.vj_attributes |= vja_wifi;
 				} else if (cherokee_buffer_cmp_str (value, "none") == 0) {
-					hdl->req.trip_attributes = ta_none;
+					hdl->req.vj_attributes = vja_none;
 				}
 			}
 			break;
 		}
-
+#if 0
 		case 'v': {
 			if (cherokee_buffer_cmp_str (key, "via") == 0) {
-				cherokee_atoi(value->buf, &hdl->req.via);
+				cherokee_atoi(value->buf, &hdl->req.via_stop_point);
 
 			}
 			break;
 		}
-
+#endif
 		case 'w': {
 			if (cherokee_buffer_cmp_str (key, "walk-slack") == 0) {
 				int walk_slack = 0;
@@ -275,8 +263,15 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 	cherokee_connection_t         *conn  = HANDLER_CONN(hdl);
 	cherokee_handler_rrrr_props_t *props = HANDLER_RRRR_PROPS(hdl);
 
-	if (conn->post.has_info) {
+    cherokee_connection_set_pathinfo (conn);
+
+    if (conn->post.has_info) {
 		return ret_ok;
+    }
+
+    if (cherokee_buffer_cmp_str (&conn->pathinfo, "/metadata") == 0) {
+        cherokee_buffer_add_buffer (&hdl->output, &props->metadata);
+        return ret_ok;
     }
 
 	/* Parse HTTP arguments
@@ -296,10 +291,10 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 	                          (cherokee_avl_while_func_t) arguments_while,
 	                          hdl, NULL, NULL);
 
-	if (hdl->req.from == NONE || hdl->req.to == NONE) {
+    if (!hdl->has_from || !hdl->has_to) {
         conn->error_code = http_not_found;
-		return ret_error;
-	}
+        return ret_error;
+    }
 
 	if (hdl->req.mode == 0)
 		hdl->req.mode = m_all;
@@ -315,31 +310,28 @@ cherokee_handler_rrrr_init (cherokee_handler_rrrr_t *hdl)
 		router_request_from_epoch (&hdl->req, &props->tdata, mktime(&ltm));
 	}
 
-	router_request_t req = hdl->req;
+    if (hdl->req.time_rounded && ! (hdl->req.arrive_by)) {
+        hdl->req.time++;
+    }
+    hdl->req.time_rounded = false;
+
+    if (hdl->req.arrive_by) {
+        hdl->req.time_cutoff = 0;
+    } else {
+        hdl->req.time_cutoff = UNREACHED;
+    }
 
 	CHEROKEE_RWLOCK_READER (&props->rwlock);
 
-	router_setup (&hdl->router, &props->tdata);
+    plan_t plan;
+    memset (&plan, 0, sizeof(plan_t));
+    router_route_full_reversal (&hdl->router, &hdl->req, &plan);
+    plan.req.time = hdl->req.time; /* restore the original request time */
 
-	router_route (&hdl->router, &req);
-
-	// repeat search in reverse to compact transfers
-	uint32_t n_reversals = req.arrive_by ? 1 : 2;
-
-	// but do not reverse requests starting on board (they cannot be compressed, earliest arrival is good enough)
-	if (req.start_trip_trip != NONE) n_reversals = 0;
-
-	for (uint32_t i = 0; i < n_reversals; ++i) {
-		// handle case where route is not reversed
-		router_request_reverse (&hdl->router, &req);
-		router_route (&hdl->router, &req);
-	}
-
+	router_result_sort (&plan);
 	cherokee_buffer_ensure_size (&hdl->output, OUTPUT_LEN);
-	struct plan plan;
-	router_result_to_plan (&plan, &hdl->router, &req);
-	plan.req.time = hdl->req.time; // restore the original request time
-	hdl->output.len = render_plan_json(&plan, &props->tdata, hdl->output.buf, OUTPUT_LEN);
+    hdl->output.len = plan_render_otp (&plan, &props->tdata, hdl->output.buf, OUTPUT_LEN);
+
 
 	CHEROKEE_RWLOCK_UNLOCK(&props->rwlock);
 
@@ -388,7 +380,7 @@ rrrr_read_post (cherokee_handler_rrrr_t *hdl)
 		return ret_eagain;
 	} else {
 		CHEROKEE_RWLOCK_WRITER(&props->rwlock);
-		tdata_apply_gtfsrt (&props->tdata, hdl->output.buf, hdl->output.len);
+        tdata_apply_gtfsrt_tripupdates (&props->tdata, hdl->output.buf, hdl->output.len);
 		CHEROKEE_RWLOCK_UNLOCK(&props->rwlock);
 	}
 
@@ -453,9 +445,12 @@ cherokee_handler_rrrr_new (cherokee_handler_t  **hdl,
 	/* Properties
 	 */
 	router_request_initialize (&n->req);
+    memset (&n->router, 0, sizeof(router_t));
 	router_setup (&n->router, &(PROP_RRRR(props)->tdata));
 
 	cherokee_buffer_init (&n->output);
+    n->has_from = false;
+    n->has_to = false;
 
 	*hdl = HANDLER(n);
 	return ret_ok;
@@ -465,11 +460,10 @@ cherokee_handler_rrrr_new (cherokee_handler_t  **hdl,
 static ret_t
 props_free  (cherokee_handler_rrrr_props_t *props)
 {
-	tdata_close(&props->tdata);
-	cherokee_buffer_mrproper (&props->tdata_file);
-	HashGrid_teardown(&props->hashgrid);
-	free(props->coords);
 	CHEROKEE_RWLOCK_DESTROY (&props->rwlock);
+    tdata_close(&props->tdata);
+	cherokee_buffer_mrproper (&props->metadata);
+	cherokee_buffer_mrproper (&props->tdata_file);
 
 	return ret_ok;
 }
@@ -493,6 +487,8 @@ cherokee_handler_rrrr_configure (cherokee_config_node_t   *conf,
 		                                  MODULE_PROPS_FREE(props_free));
 
 		cherokee_buffer_init (&n->tdata_file);
+		cherokee_buffer_init (&n->metadata);
+	    cherokee_buffer_ensure_size (&n->metadata, 512);
 
 		*_props = MODULE_PROPS(n);
 	}
@@ -509,17 +505,14 @@ cherokee_handler_rrrr_configure (cherokee_config_node_t   *conf,
 		}
 	}
 
-	tdata_load_dynamic(props->tdata_file.buf, &(props->tdata));
-	props->coords = malloc(sizeof(coord_t) * props->tdata.n_stops);
-	for (uint32_t c = 0; c < props->tdata.n_stops; ++c) {
-		coord_from_latlon(props->coords + c, props->tdata.stop_coords + c);
-	}
-	HashGrid_init (&props->hashgrid, 100, 500.0, props->coords, props->tdata.n_stops);
+    memset (&(props->tdata), 0, sizeof(tdata_t));
+	tdata_load(&(props->tdata), props->tdata_file.buf);
+    tdata_hashgrid_setup(&(props->tdata));
+    props->metadata.len = metadata_render_otp (&(props->tdata), props->metadata.buf, props->metadata.size);
 
-	props->tdata.stopid_index  = rxt_load_strings_from_tdata (props->tdata.stop_ids, props->tdata.stop_ids_width, props->tdata.n_stops);
-	props->tdata.tripid_index  = rxt_load_strings_from_tdata (props->tdata.trip_ids, props->tdata.trip_ids_width, props->tdata.n_trips);
-	props->tdata.routeid_index = rxt_load_strings_from_tdata (props->tdata.route_ids, props->tdata.route_ids_width, props->tdata.n_routes);
-
+#if 0
+    tdata_realtime_setup (&(props->tdata));
+#endif
 
 	CHEROKEE_RWLOCK_INIT (&props->rwlock, NULL);
 
